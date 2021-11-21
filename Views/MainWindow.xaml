@@ -3,14 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:QuipuTest"
-        mc:Ignorable="d" FontSize="18" FontFamily="Segoe UI Light"
-        Title="MainWindow" Height="450" Width="800">
+        xmlns:local="clr-namespace:QuipuTest.ViewModel"
+        mc:Ignorable="d" FontSize="18" FontFamily="Segoe UI" 
+        Title="MainWindow" MinHeight="600" MinWidth="800">
+    <Window.DataContext>
+        <local:MainWindowViewModel></local:MainWindowViewModel>
+    </Window.DataContext>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="20"/>
-            <ColumnDefinition Width="auto"/>
-            <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="*"/>
@@ -20,13 +21,36 @@
             <RowDefinition Height="20"/>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
-            <RowDefinition Height="auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="20"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Column="1" Grid.Row="1" Text="Путь к файлу" Margin="10"/>
-        <TextBox x:Name="pathToFileBox" Grid.Column="2" Grid.Row="1" Width="100" Margin="10"></TextBox>
-        <Button Grid.Column="3" Grid.Row="1" Content="Выбрать" Margin="10" MinWidth="110" />
-        <Button Grid.Column="4" Grid.Row="1" Content="Вычислить" Margin="10" MinWidth="130" FontWeight="Bold"/>
+        <Border  Grid.Column="1" Grid.Row="1"  Grid.RowSpan="3" BorderBrush="Black" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Text="Путь к файлу:" Margin="10,20,0,5"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox x:Name="pathToFileBox" Width="200" Margin="10" IsReadOnly="True"
+                             Text="{Binding PathToFile, UpdateSourceTrigger=PropertyChanged}">
+                    </TextBox>
+                    <Button  Content="..." Margin="0,10,5,10" MinWidth="25" Command="{Binding OpenFileDialogCommand}"/>
+                </StackPanel>
+                <TextBlock Text="Искомый тэг:" Margin="10,20,5,5"/>
+                <ComboBox Margin="10,20,5,5" ItemsSource="{Binding Tags}" SelectedItem ="{Binding Tag}" />
+                <ProgressBar Margin="10,20,5,5"  Value="{Binding CurrentProgress, Mode=OneWay}" Visibility="Visible" Height="20">
+                    
+                </ProgressBar>
+                <Button Content="{Binding ButtonContent}" Margin="10,20,5,5" MinWidth="130" FontWeight="Bold"
+                        Command= "{Binding CalculationTagsCommand}" />
+            </StackPanel>
+        </Border>
+        <ScrollViewer Grid.Row="1" Grid.Column="2" Grid.RowSpan="3" Grid.ColumnSpan="2" CanContentScroll="True">
+            <DataGrid CanUserAddRows="False" IsSynchronizedWithCurrentItem="True" AutoGenerateColumns="False"
+                  ItemsSource="{Binding Urls, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top">
+                <DataGrid.Columns>
+                    <DataGridTextColumn MinWidth="150" Width="auto" Header="Количество тэгов" Binding="{Binding NumberTags}"  IsReadOnly="True"/>
+                    <DataGridTextColumn MinWidth="300" Width="auto" Header="URL" Binding="{Binding StrUrl}" IsReadOnly="True"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </ScrollViewer>
+
     </Grid>
 </Window>
