@@ -17,12 +17,14 @@ namespace QuipuTest.Model
         /// <summary>
         /// Аvailable tags
         /// </summary>
-        public static readonly List<string> tags = new List<string>() { "a" };
+        public static readonly List<string> Tags = new List<string>() { "a" };
 
         /// <summary>
         /// Spliter character array
         /// </summary>
         private static char[] _arraySplit = { ';', ',', ' ' };
+
+        #region Collection URLs property
 
         private static ObservableCollection<Url> _urls;
         public static ObservableCollection<Url> AllUrls
@@ -39,6 +41,13 @@ namespace QuipuTest.Model
             }
         }
 
+        #endregion
+
+        /// <summary>
+        /// Сhecking a string against a mask
+        /// </summary>
+        /// <param item="value"></param>
+        /// <returns>bool</returns>
         public static bool ValidateUrl(string value)
         {
             value = value.Trim();
@@ -48,61 +57,12 @@ namespace QuipuTest.Model
             return true;
         }
 
-        public static List<string> ReadingFile(string _pathToFile)
-        {
-            var tempCollection = new List<string>();
-            try
-            {
-                string text = File.ReadAllText(_pathToFile);
-                if (string.IsNullOrEmpty(text))
-                {
-                    throw new ArgumentException();
-                }
-                else
-                {
-                    var arrayUrls = text.Split(_arraySplit);
-                    foreach (var item in arrayUrls)
-                    {
-                        if (ValidateUrl(item))
-                            tempCollection.Add(item);
-                    }
-                }
-            }
-            catch (ArgumentException)
-            {
-                MessageBox.Show("Входный файл не содержит элементов.");
-            }
-            return tempCollection;
-        }
-
-        public static ObservableCollection<Url> CalculationTags(CancellationToken cancelToken, string _selectTag, string _pathToFile)
-        {
-            var temp = ReadingFile(_pathToFile);
-            BlockingCollection<Url> block = new BlockingCollection<Url>();
-            try
-            {
-                Parallel.ForEach(temp, (item, state) =>
-                {
-                    if (cancelToken.IsCancellationRequested == false)
-                    {
-                        var count = GetCount(item, _selectTag);
-                        block.Add(new Url(item, count));
-                    }
-                    else
-                    {
-                        state.Break();
-                        cancelToken.ThrowIfCancellationRequested();
-                    }
-                });
-            }
-            catch (OperationCanceledException)
-            {
-                MessageBox.Show("Процесс остановлен.");
-            }
-            block.CompleteAdding();
-            AllUrls = new ObservableCollection<Url>(block.GetConsumingEnumerable());
-            return AllUrls;
-        }
+        /// <summary>
+        /// Сalculates the number of tags on the page
+        /// </summary>
+        /// <param Page="url"></param>
+        /// <param Search tag="tag"></param>
+        /// <returns></returns>
         private static int GetCount(string url, string tag)
         {
             int _count = 0;
@@ -131,6 +91,76 @@ namespace QuipuTest.Model
                 MessageBox.Show($"Ошибка: неверный формат URL ({url})");
             }
             return _count;
+        }
+
+        /// <summary>
+        /// Get collection of URL-addresses
+        /// </summary>
+        /// <param Path to file="_pathToFile"></param>
+        /// <returns></returns>
+        public static List<string> GetCollectionUrl(string _pathToFile)
+        {
+            var tempCollection = new List<string>();
+            try
+            {
+                string text = File.ReadAllText(_pathToFile);
+                if (string.IsNullOrEmpty(text))
+                {
+                    throw new ArgumentException("Входный файл пуст.");
+                }
+                else
+                {
+                    var arrayUrls = text.Split(_arraySplit);
+                    foreach (var item in arrayUrls)
+                    {
+                        if (ValidateUrl(item))
+                            tempCollection.Add(item);
+                    }
+                    if (tempCollection.Count == 0)
+                        throw new ArgumentException("Входный файл не содержит Url страниц."); ;
+                }
+            }
+            catch (ArgumentException argsEx)
+            {
+                MessageBox.Show(argsEx.Message);
+            }
+            return tempCollection;
+        }
+
+        /// <summary>
+        /// Сalculates and returns a collection of instances
+        /// </summary>
+        /// <param cancellation token="cancelToken"></param>
+        /// <param selection tag="_selectTag"></param>
+        /// <param path to file="_pathToFile"></param>
+        /// <returns></returns>
+        public static ObservableCollection<Url> CalculationTags(CancellationToken cancelToken, string _selectTag, string _pathToFile)
+        {
+            List<string> urlCollection = GetCollectionUrl(_pathToFile);
+            BlockingCollection<Url> blockCollection = new BlockingCollection<Url>();
+            try
+            {
+                Parallel.ForEach(urlCollection, (item, state) =>
+                {
+                    if (cancelToken.IsCancellationRequested == false)
+                    {
+                        var count = GetCount(item, _selectTag);
+                        blockCollection.Add(new Url(item, count));
+                    }
+                    else
+                    {
+                        state.Break();
+                        cancelToken.ThrowIfCancellationRequested();
+                    }
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                MessageBox.Show("Процесс остановлен.");
+            }
+            blockCollection.CompleteAdding();
+            AllUrls = new ObservableCollection<Url>(blockCollection.GetConsumingEnumerable());
+            return AllUrls;
         }
     }
 }

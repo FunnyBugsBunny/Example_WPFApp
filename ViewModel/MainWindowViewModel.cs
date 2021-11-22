@@ -4,27 +4,45 @@ using QuipuTest.Model;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace QuipuTest.ViewModel
 {
-    public class MainWindowViewModel : ViewModelBase
+    public class MainWindowViewModel : ViewModelBase, IValueConverter
     {
+        #region Visible progressbar property
+
+        public string VisibleValue
+        {
+            get
+            {
+                if (IsRunning)
+                    return "Visible";
+                return "Collapsed";
+            }
+        }
+        #endregion
+
         #region Аvailable tags property
+
         public static List<string> Tags
         {
             get
             {
-                return UrlRepository.tags;
+                return UrlRepository.Tags;
             }
         }
         #endregion
 
         #region Button content property
+
         private string _buttonContent;
 
         public string ButtonContent
@@ -39,6 +57,7 @@ namespace QuipuTest.ViewModel
         #endregion
 
         #region Path to file property
+
         private string _pathToFile;
 
         public string PathToFile
@@ -56,6 +75,7 @@ namespace QuipuTest.ViewModel
         #endregion
 
         #region Current tag property
+
         private string _tag;
         public string Tag
         {
@@ -73,6 +93,7 @@ namespace QuipuTest.ViewModel
         #endregion
 
         #region Collection URLs property
+
         private ObservableCollection<Url> _urls;
         public ObservableCollection<Url> Urls
         {
@@ -81,6 +102,12 @@ namespace QuipuTest.ViewModel
                 if (_urls == null)
                     _urls = new ObservableCollection<Url>();
                 return _urls;
+            }
+            set
+            {
+                _urls = value;
+                MaxValueTags = _urls.Max(e => e.NumberTags);
+                OnPropertyChanged(nameof(Urls));
             }
         }
 
@@ -99,6 +126,7 @@ namespace QuipuTest.ViewModel
             set
             {
                 _IsRunning = value;
+                OnPropertyChanged(nameof(VisibleValue));
             }
         }
         #endregion
@@ -130,9 +158,8 @@ namespace QuipuTest.ViewModel
             CancellationToken canselToken = _tokenSource.Token;
             try
             {
-                _urls = await Task.Run(() => UrlRepository.CalculationTags(canselToken, Tag, PathToFile));
-                Urls.OrderBy(e => e.NumberTags).AsEnumerable();
-                OnPropertyChanged(nameof(Urls));
+                OnDispose();
+                Urls = await Task.Run(() => UrlRepository.CalculationTags(canselToken, Tag, PathToFile));
             }
             catch (Exception ex)
             {
@@ -163,6 +190,7 @@ namespace QuipuTest.ViewModel
         #endregion
 
         #region Call OFD command
+
         RelayCommand _openFileDialogCommand;
 
         public ICommand OpenFileDialogCommand
@@ -190,9 +218,27 @@ namespace QuipuTest.ViewModel
 
         #endregion
 
+        #region Dispose collection
+
         protected override void OnDispose()
         {
             this.Urls.Clear();
         }
+        #endregion
+
+        #region Highlighting the maximum value
+        public static int MaxValueTags { get; set; }
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return (int)value == MaxValueTags ?
+                new SolidColorBrush(Colors.LawnGreen)
+                : new SolidColorBrush(Colors.White);
+        }
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new Exception("The method or operation is not implemented.");
+        }
+        #endregion
     }
 }
